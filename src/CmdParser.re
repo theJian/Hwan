@@ -5,11 +5,13 @@ type options = {
 
 type anon = list(string);
 
+type script = option(string);
+
 let parseScript =
   fun
-  | [_, "run", script, ..._] => script
-  | [_, script, ..._] => script
-  | _ => "no such a fucking command";
+  | [_, "run", script, ..._] => Some(script)
+  | [_, script, ..._] => Some(script)
+  | _ => None;
 
 let parse = () => {
   let version = ref(false);
@@ -22,12 +24,18 @@ let parse = () => {
     ("--version", Arg.Set(version), "Show version"),
     ("--hwan-pkg", Arg.Set_string(package), "Script execution target"),
   ];
-  let usageMsg = "Minimalistic monorepo management tool";
+  let usagemsg = "Minimalistic monorepo management tool";
 
-  Arg.parse(speclist, prepend, usageMsg);
+  Arg.parse(speclist, prepend, usagemsg);
+
+  let script =
+    switch (parseScript(List.rev(anon^))) {
+    | Some(script) => script
+    | None => Arg.usage(speclist, usagemsg); exit(0)
+    };
 
   (
-    parseScript(List.rev(anon^)),
+    script,
     {
       version: version^,
       package: package^,
