@@ -9,7 +9,7 @@
   ],
   "bs-dependencies": [
       "bs-node",
-      "@glennsl/bs-json",
+      "@glennsl/bs-json"
   ],
   "namespace": true,
   "refmt": 3

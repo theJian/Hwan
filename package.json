@@ -1,6 +1,7 @@
 {
   "name": "hwan",
   "version": "0.1.0",
+  "bin": "./lib/js/src/Main.js",
   "scripts": {
     "build": "bsb -make-world",
     "start": "bsb -make-world -w",
@@ -18,6 +19,7 @@
   },
   "dependencies": {
     "@glennsl/bs-json": "^1.1.2",
-    "bs-node": "github:buckletypes/bs-node"
+    "bs-node": "github:buckletypes/bs-node",
+    "glob": "^7.1.2"
   }
 }
