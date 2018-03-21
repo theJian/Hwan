@@ -4,6 +4,8 @@
   "bin": "./lib/js/src/Main.js",
   "scripts": {
     "build": "bsb -make-world",
+    "build:js": "rm lib/js/src/Main.js && npm run build",
+    "postbuild:js": "sed -i '' '1 i\\'$'\\n''#!/usr/bin/env node'$'\\n' lib/js/src/Main.js",
     "start": "bsb -make-world -w",
     "clean": "bsb -clean-world"
   },
