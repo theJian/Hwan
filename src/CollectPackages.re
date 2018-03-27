@@ -20,5 +20,10 @@ let rec findRootDir = (cwd, ~root=?, ()) => {
 let collectPackages = () => {
   let rootDir = findRootDir(Node.Process.process##cwd(), ());
   Glob.sync(Config.packagePaths, [%bs.obj { cwd: rootDir, absolute: true }])
-    |> Array.map(Package.concretizePackage);
+    |> Array.to_list
+    |> List.map(Package.concretizePackage)
+    |> List.filter(Js.Option.isSome)
+    |> List.map(Js.Option.getExn)
+    |> Array.of_list
+    ;
 };

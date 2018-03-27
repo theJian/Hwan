@@ -1,5 +1,9 @@
+type nodeStatus = Nop | Include | Exclude;
+
+let dirname: option(string) = [%bs.node __dirname];
+
 let readRootPackage = () =>
-  [|Node.Global.__dirname, "../../../"|]
+  [|Js.Option.getExn(dirname), "../../../"|]
     |> Node.Path.join
     |> Package.readPackageMeta;
 
@@ -28,8 +32,8 @@ let findStartNodeIds = (name, graph) => {
   )
 };
 
-let queueTask = (graph, startNodeIds) => {
-  let visited = Array.(make(length(graph), false));
+let queueTask = (graph, startNodeIds, ~exclude=[], ()) => {
+  let nodeStatuses = Array.(make(length(graph), Nop));
   let dependents =
     graph
       |> Array.to_list
@@ -40,21 +44,45 @@ let queueTask = (graph, startNodeIds) => {
         deps
       }, Array.(make(length(graph), [])));
   let que = ref([]);
-  let curIds = ref(startNodeIds);
-  while (curIds^ != []) {
-    List.iter(id => {
-      visited[id] = true;
-      que := [id, ...que^];
-      ()
-    }, curIds^);
+  let cur = ref(
+    Package.findLeftPNodeIds(graph) |> List.map(id => {
+      switch (List.exists((==) @@ id, startNodeIds)) {
+      | true => (id, Include)
+      | false => (id, Exclude)
+      }
+    })
+  );
 
-    curIds := List.(
-      curIds^ |> map(id => graph[id].depNodes)
+  while (cur^ != []) {
+    List.iter(((id, status)) => {
+      nodeStatuses[id] = status;
+      if (status == Include && !List.exists((==) @@ id, exclude)) {
+        que := [id, ...que^];
+      };
+      ()
+    }, cur^);
+
+    cur := List.(
+      cur^ |> map(((id, _)) => graph[id].depNodes)
               |> flatten
               |> sort_uniq(compare)
-              |> filter(id => {
-                   for_all(id_ => visited[id_], dependents[id])
+              |> map(id => {
+                   let dependentStatuses =
+                     dependents[id] |> map(id => nodeStatuses[id]);
+                   let status = if (exists((==) @@ Nop, dependentStatuses)) {
+                     Nop
+                   } else if (exists((==) @@ Include, dependentStatuses)) {
+                     Include
+                   } else {
+                     Exclude
+                   };
+                   (id, status)
                  })
+              |> filter(
+                   fun
+                   | (_, Nop) => false
+                   | _ => true
+                 )
     )
   };
   que^ |> List.map(id => graph[id])
@@ -62,22 +90,22 @@ let queueTask = (graph, startNodeIds) => {
 
 let syscall = (syscmd, node) => {
   let path = Package.(node.package.path);
-  Node.(
-    ChildProcess.execSync(
+  Node.Child_process.(
+    execSync(
       syscmd,
-      Options.options(~cwd=path, ~encoding="utf8", ())
+      option(~cwd=path, ~encoding="utf8", ())
     )
   )
     |> Logging.output;
 };
 
-let runCommand = (command, package) => {
+let runCommand = (command, options: CmdParser.options) => {
   Logging.logCommand(command);
-  Logging.logPackage(package === "" ? "all" : package);
+  Logging.logPackage(options.package === "" ? "all" : options.package);
 
   let graph = CollectPackages.collectPackages() |> Package.buildPackageGraph;
-  let startIds = findStartNodeIds(package, graph);
-  queueTask(graph, startIds)
+  let startIds = findStartNodeIds(options.package, graph);
+  queueTask(graph, startIds, ~exclude=options.onlyDep ? startIds : [], ())
     |> List.(iter(syscall(command |> fold_left((s1, s2) => s1 ++ " " ++ s2, ""))));
   ()
 };
@@ -85,5 +113,5 @@ let runCommand = (command, package) => {
 let run = ((command: list(string), options: CmdParser.options)) =>
   switch (command, options) {
   | (_, { version: true }) => echoVersion()
-  | (command, { package }) => runCommand(command, package)
+  | (command, options) => runCommand(command, options)
   };

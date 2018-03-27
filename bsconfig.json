@@ -8,7 +8,6 @@
     }
   ],
   "bs-dependencies": [
-      "bs-node",
       "@glennsl/bs-json"
   ],
   "namespace": true,

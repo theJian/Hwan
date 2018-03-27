@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@glennsl/bs-json": "^1.1.2",
-    "bs-node": "github:buckletypes/bs-node",
     "glob": "^7.1.2"
   }
 }

@@ -47,10 +47,11 @@ let readPackageMeta = (path) => [|path, Config.packageJson|]
                                |> Json.parseOrRaise
                                |> decodePackageJson;
 
-let concretizePackage = (path) => {
-  path,
-  meta: path |> readPackageMeta,
-};
+let concretizePackage = (path): option(package) =>
+  switch ([|path, Config.packageJson|] |> Node.Path.join |> Node_fs.existsSync) {
+  | true => Some({ path, meta: path |> readPackageMeta })
+  | false => None
+  };
 
 let buildPNode = (pkgIdx, package) => {
   package,
@@ -98,7 +99,7 @@ let findLeftPNodeIds = graph => {
 
 let findNodeId = (f, graph) =>
   graph
-    |> Array.map(f)
-    |> Array.mapi((idx, matched) => matched ? idx : -1)
+    |> Array.mapi((idx, node) => f(node) ? idx : -1)
     |> Array.to_list
+    |> List.filter((!=)(-1))
     |> List.hd
