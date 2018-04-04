@@ -3,7 +3,7 @@ type nodeStatus = Nop | Include | Exclude;
 let dirname: option(string) = [%bs.node __dirname];
 
 let readRootPackage = () =>
-  [|Js.Option.getExn(dirname), "../../../"|]
+  [|Js.Option.getExn(dirname), "../"|]
     |> Node.Path.join
     |> Package.readPackageMeta;
 
