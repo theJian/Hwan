@@ -1,5 +1,4 @@
 import resolve from 'rollup-plugin-node-resolve';
-import commonjs from 'rollup-plugin-commonjs';
 
 export default {
   input: 'lib/es6/src/Main.js',
@@ -9,7 +8,8 @@ export default {
     banner: '#!/usr/bin/env node'
   },
   plugins: [
-    resolve(),
-    commonjs()
+    resolve({
+      only: ['bs-platform', '@glennsl/bs-json']
+    }),
   ]
 };
